@@ -27,7 +27,12 @@ func GetUser(db *sql.DB, id int) {
 
 	services.AddUsersToTable(db)
 
-	user := services.FindUserById(db, 1)
+	user, err := services.FindUserById(db, 1)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	fmt.Println(user.Username)
 }

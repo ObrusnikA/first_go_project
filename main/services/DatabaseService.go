@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "github.com/lib/pq"
@@ -51,17 +52,18 @@ func AddUsersToTable(db *sql.DB) {
 	AddUsers(db)
 }
 
-func FindUserById(db *sql.DB, id int) User {
+func FindUserById(db *sql.DB, id int) (*User, error) {
 
 	if db == nil {
 		fmt.Println("FindUserById: DB is nil (not initialized)")
+		return nil, errors.New("Failed find user")
 	}
 
 	user, err := GetUserById(db, id)
 
 	if err != nil {
-		return User{}
+		return nil, err
 	}
 
-	return *user
+	return user, err
 }
