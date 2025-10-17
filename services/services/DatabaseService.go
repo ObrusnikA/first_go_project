@@ -2,26 +2,35 @@ package services
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
 func ConnectToDb(host string, port int, user string, password string, dbname string) (*sql.DB, error) {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		return nil, fmt.Errorf("connection error: %w", err)
-	}
+	var db *sql.DB
+	var err error
 
-	if err = db.Ping(); err != nil {
-		return nil, fmt.Errorf("ping error: %w", err)
-	}
+	for i := 1; i <= 10; i++ {
+		db, err = sql.Open("postgres", dsn)
+		if err != nil {
+			log.Printf("Attempt %d: failed to open connection: %v", i, err)
+		} else {
+			err = db.Ping()
+			if err == nil {
+				log.Printf("Connected to DB on attempt %d", i)
+			}
+			log.Printf("Attempt %d: waiting for DB to be ready: %v", i, err)
+		}
 
-	fmt.Println("Connected to database successfully!")
+		time.Sleep(2 * time.Second)
+	}
 
 	MigrateTable(db)
 	return db, nil
@@ -51,17 +60,18 @@ func AddUsersToTable(db *sql.DB) {
 	AddUsers(db)
 }
 
-func FindUserById(db *sql.DB, id int) User {
+func FindUserById(db *sql.DB, id int) (*User, error) {
 
 	if db == nil {
 		fmt.Println("FindUserById: DB is nil (not initialized)")
+		return nil, errors.New("Failed find user")
 	}
 
 	user, err := GetUserById(db, id)
 
 	if err != nil {
-		return User{}
+		return nil, err
 	}
 
-	return *user
+	return user, err
 }

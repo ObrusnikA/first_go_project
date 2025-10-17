@@ -2,12 +2,27 @@ package main
 
 import (
 	"database/sql"
-	"first_pet/main/services"
+	"first_pet/services/services"
 	"fmt"
+	"os"
+	"strconv"
 )
 
 func main() {
-	db, err := services.ConnectToDb("localhost", 5432, "postgres", "admin", "postgres")
+	host := os.Getenv("DB_HOST")
+	portStr := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		panic(fmt.Sprintf("Invalid port: %v", portStr))
+	}
+
+	fmt.Printf("Connecting to DB at %s:%d\n", host, port)
+
+	db, err := services.ConnectToDb(host, port, user, password, dbname)
 	if err != nil {
 		fmt.Println("Failed", err)
 		return
@@ -27,7 +42,12 @@ func GetUser(db *sql.DB, id int) {
 
 	services.AddUsersToTable(db)
 
-	user := services.FindUserById(db, 1)
+	user, err := services.FindUserById(db, 1)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	fmt.Println(user.Username)
 }
